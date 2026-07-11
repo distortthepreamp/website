@@ -1,0 +1,38 @@
+:root {
+  --dtp-yellow: #ffff33;
+  --dtp-black: #000000;
+  --heading-font: "Univers Condensed Bold", sans-serif;
+  --heading-size: clamp(2rem, 10vw, 6rem);
+}
+
+@font-face {
+  font-family: "Univers Condensed Bold";
+  src: url("../fonts/univers-condensed-bold.ttf") format("truetype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+}
+
+body {
+  min-height: 100svh;
+  background: var(--dtp-yellow);
+  color: var(--dtp-black);
+  display: grid;
+  place-items: center;
+}
+
+.container {
+  padding: 1.5rem;
+  text-align: center;
+}
+
+h1 {
+  font-family: var(--heading-font);
+  font-size: var(--heading-size);
+  letter-spacing: normal;
+}
