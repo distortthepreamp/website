@@ -55,6 +55,14 @@ h1 {
   font-display: swap;
 }
 
+@font-face {
+  font-family: "Univers 45";
+  src: url("../fonts/univers-45.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 body.site {
   display: block;
   background: #000;
@@ -141,4 +149,21 @@ nav {
   .hamburger {
     display: block;
   }
+}
+
+footer {
+  background: #000;
+  color: #fff;
+  font-family: "Univers 45";
+  font-size: 13px;
+  padding: 10px 40px;
+  text-align: left;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.footer-links {
+  display: flex;
+  gap: 16px;
 }
