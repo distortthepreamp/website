@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Jamie’s Straight Line Trainer</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one narrow column, exercise-book feel; graph paper grid is the hero. */
+:root{
+  --bg:#f7f8fa; --fg:#1d2436; --muted:#5e6778; --paper:#ffffff;
+  --grid:#cfd9e6; --axis:#1d2436; --line:#d6338f; --accent:#2e5bcf;
+  --good:#1f8a4c; --bad:#c43a3a; --good-bg:#e6f4ec; --bad-bg:#fbe9e9;
+  --border:#d8dde6;
+  --serif:"IBM Plex Serif",Georgia,"Times New Roman",serif;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#171a21; --fg:#e8ebf2; --muted:#a0a8b8; --paper:#1f232d;
+    --grid:#343b4a; --axis:#e8ebf2; --line:#f05ab0; --accent:#7f9cf0;
+    --good:#5fcf8d; --bad:#f08080; --good-bg:#1d3327; --bad-bg:#3a2222;
+    --border:#333a48; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#171a21; --fg:#e8ebf2; --muted:#a0a8b8; --paper:#1f232d;
+  --grid:#343b4a; --axis:#e8ebf2; --line:#f05ab0; --accent:#7f9cf0;
+  --good:#5fcf8d; --bad:#f08080; --good-bg:#1d3327; --bad-bg:#3a2222;
+  --border:#333a48; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--sans);
+  padding-block:20px 40px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  line-height:1.45}
+.wrap{max-width:520px;margin:0 auto;display:grid;gap:16px}
+header{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+h1{font-family:var(--serif);font-weight:600;font-size:1.35rem;margin:0;text-wrap:balance}
+.score{font-family:var(--mono);font-size:.9rem;color:var(--muted);font-variant-numeric:tabular-nums}
+.score b{color:var(--fg);font-weight:500}
+.q{font-size:1.05rem;margin:0}
+.q .form{font-family:var(--mono);white-space:nowrap}
+.graph{background:var(--paper);border:1px solid var(--border);border-radius:6px;padding:6px}
+svg{display:block;width:100%;height:auto;max-width:100%}
+.answer{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-family:var(--mono);font-size:1.25rem}
+.answer input{font:inherit;width:5.2ch;text-align:center;padding:6px 4px;border:1.5px solid var(--border);
+  border-radius:6px;background:var(--paper);color:var(--fg)}
+.answer input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 25%,transparent)}
+.answer .i{font-style:italic}
+.btns{display:flex;gap:8px;flex-wrap:wrap}
+button{font:inherit;font-weight:500;padding:9px 16px;border-radius:6px;border:1.5px solid var(--border);
+  background:var(--paper);color:var(--fg);cursor:pointer}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button:disabled{opacity:.5;cursor:default}
+.fb{border-radius:6px;padding:10px 14px;font-size:.98rem}
+.fb.good{background:var(--good-bg);color:var(--good)}
+.fb.bad{background:var(--bad-bg);color:var(--bad)}
+.fb code{font-family:var(--mono);font-size:1.05em}
+.fb .work{color:var(--fg);margin-top:6px;font-size:.92rem}
+.fb .work code{color:var(--fg)}
+details{font-size:.9rem;color:var(--muted)}
+summary{cursor:pointer;font-weight:500;color:var(--fg)}
+.opts{display:grid;gap:8px;margin-top:8px}
+.opts label{display:flex;align-items:center;gap:8px}
+.opts input{accent-color:var(--accent)}
+.opts .reset{justify-self:start;padding:5px 10px;font-size:.85rem}
+.hint{font-size:.85rem;color:var(--muted);margin:0}
+@media (prefers-reduced-motion:no-preference){ .fb{animation:in .18s ease-out} }
+@keyframes in{from{opacity:.4;transform:translateY(-3px)}to{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>Jamie’s Straight Line Trainer</h1>
+    <div class="score" id="score"></div>
+  </header>
+
+  <p class="q">What is the equation of the straight line shown below? Give your answer in the form <span class="form">y = mx + c</span></p>
+
+  <div class="graph"><svg id="g" viewBox="0 0 460 460" xmlns="http://www.w3.org/2000/svg" aria-label="Graph of a straight line on a grid from -10 to 10"></svg></div>
+
+  <div class="answer" role="group" aria-label="Your answer">
+    <span class="i">y</span><span>=</span>
+    <input id="m" inputmode="text" autocomplete="off" aria-label="gradient m" placeholder="m">
+    <span class="i">x</span><span>+</span>
+    <input id="c" inputmode="text" autocomplete="off" aria-label="intercept c" placeholder="c">
+  </div>
+  <p class="hint">Fractions as 3/2, decimals as 1.5. Negative c as −4 in the c box.</p>
+
+  <div class="btns">
+    <button class="primary" id="check">Check</button>
+    <button id="next">Next question</button>
+    <button id="reveal">Show answer</button>
+  </div>
+
+  <div id="fb" hidden></div>
+
+  <details>
+    <summary>Options</summary>
+    <div class="opts">
+      <label><input type="checkbox" id="optFrac"> Allow fractional gradients</label>
+      <label><input type="checkbox" id="optNeg" checked> Allow negative gradients</label>
+      <button class="reset" id="resetScore">Reset score</button>
+    </div>
+  </details>
+</div>
+
+<script>
+(function(){
+  var R=10, S=460, PAD=24, CELL=(S-2*PAD)/(2*R);
+  var svg=document.getElementById('g');
+  var mIn=document.getElementById('m'), cIn=document.getElementById('c');
+  var fb=document.getElementById('fb'), scoreEl=document.getElementById('score');
+  var optFrac=document.getElementById('optFrac'), optNeg=document.getElementById('optNeg');
+  var cur=null, answered=false;
+  var score={right:0,done:0,streak:0};
+
+  function load(){ try{ var s=JSON.parse(localStorage.getItem('slt')||'{}');
+    if(s.score)score=s.score; if('frac' in s)optFrac.checked=!!s.frac; if('neg' in s)optNeg.checked=!!s.neg; }catch(e){} }
+  function save(){ try{ localStorage.setItem('slt',JSON.stringify({score:score,frac:optFrac.checked,neg:optNeg.checked})); }catch(e){} }
+
+  function gcd(a,b){a=Math.abs(a);b=Math.abs(b);while(b){var t=a%b;a=b;b=t;}return a;}
+  function rnd(n){return Math.floor(Math.random()*n);}
+  function pick(a){return a[rnd(a.length)];}
+
+  function gen(){
+    var num,den;
+    if(optFrac.checked && Math.random()<0.6){
+      den=pick([2,3,4]); do{num=rnd(2*den)+1;}while(gcd(num,den)!==1 || num===den);
+    } else { den=1; num=rnd(4)+1; }
+    if(optNeg.checked && Math.random()<0.5) num=-num;
+    var c=rnd(2*R-3)-(R-2);           // -8..8
+    return {num:num,den:den,c:c};
+  }
+  function X(x){return PAD+(x+R)*CELL;} function Y(y){return PAD+(R-y)*CELL;}
+
+  var NS='http://www.w3.org/2000/svg';
+  function el(tag,attrs,text){ var e=document.createElementNS(NS,tag);
+    for(var k in attrs) e.setAttribute(k,attrs[k]); if(text!=null) e.textContent=text; return e; }
+  var SANS='IBM Plex Sans,system-ui,sans-serif', SERIF='IBM Plex Serif,Georgia,serif';
+
+  function draw(q){
+    while(svg.firstChild) svg.removeChild(svg.firstChild);
+    var g=document.createDocumentFragment();
+    for(var i=-R;i<=R;i++){
+      g.appendChild(el('line',{x1:X(i),y1:PAD,x2:X(i),y2:S-PAD,stroke:'var(--grid)','stroke-width':1}));
+      g.appendChild(el('line',{x1:PAD,y1:Y(i),x2:S-PAD,y2:Y(i),stroke:'var(--grid)','stroke-width':1}));
+    }
+    g.appendChild(el('line',{x1:PAD,y1:Y(0),x2:S-PAD+8,y2:Y(0),stroke:'var(--axis)','stroke-width':1.6}));
+    g.appendChild(el('line',{x1:X(0),y1:PAD-8,x2:X(0),y2:S-PAD,stroke:'var(--axis)','stroke-width':1.6}));
+    g.appendChild(el('polygon',{points:(S-PAD+8)+','+Y(0)+' '+(S-PAD)+','+(Y(0)-4)+' '+(S-PAD)+','+(Y(0)+4),fill:'var(--axis)'}));
+    g.appendChild(el('polygon',{points:X(0)+','+(PAD-8)+' '+(X(0)-4)+','+PAD+' '+(X(0)+4)+','+PAD,fill:'var(--axis)'}));
+    for(var k=-R;k<=R;k+=2){ if(k===0)continue;
+      g.appendChild(el('text',{x:X(k),y:Y(0)+13,'font-size':10,'text-anchor':'middle',fill:'var(--fg)','font-family':SANS},k));
+      g.appendChild(el('text',{x:X(0)-5,y:Y(k)+3.5,'font-size':10,'text-anchor':'end',fill:'var(--fg)','font-family':SANS},k));
+    }
+    g.appendChild(el('text',{x:S-PAD+9,y:Y(0)-6,'font-size':12,'font-style':'italic',fill:'var(--fg)','font-family':SERIF},'x'));
+    g.appendChild(el('text',{x:X(0)+7,y:PAD-4,'font-size':12,'font-style':'italic',fill:'var(--fg)','font-family':SERIF},'y'));
+    g.appendChild(el('text',{x:X(0)-5,y:Y(0)+13,'font-size':10,'text-anchor':'end',fill:'var(--fg)','font-family':SANS},'0'));
+    // the line, clipped to the grid
+    var m=q.num/q.den, x1=-R-1, x2=R+1;
+    var cp=el('clipPath',{id:'clip'}); cp.appendChild(el('rect',{x:PAD,y:PAD,width:S-2*PAD,height:S-2*PAD})); g.appendChild(cp);
+    g.appendChild(el('line',{'clip-path':'url(#clip)',x1:X(x1),y1:Y(m*x1+q.c),x2:X(x2),y2:Y(m*x2+q.c),stroke:'var(--line)','stroke-width':2.4,'stroke-linecap':'round'}));
+    svg.appendChild(g);
+  }
+
+  function fmtM(q){ var s=q.num<0?'−':''; var n=Math.abs(q.num); return s+(q.den===1?n:n+'/'+q.den); }
+  function fmtEq(q){ var m=fmtM(q), c=q.c; var ms=(m==='1')?'':(m==='−1')?'−':m;
+    var cs=c===0?'':(c>0?' + '+c:' − '+(-c)); return 'y = '+ms+'x'+cs; }
+
+  function parseFrac(s){
+    s=s.trim().replace(/−/g,'-').replace(/\s+/g,'');
+    if(s==='')return null;
+    var f=s.match(/^([+-]?\d+)\/([+-]?\d+)$/);
+    if(f){ var n=+f[1], d=+f[2]; if(d===0)return null; if(d<0){n=-n;d=-d;} var g=gcd(n,d)||1; return {n:n/g,d:d/g}; }
+    if(/^[+-]?(\d+\.?\d*|\.\d+)$/.test(s)){ var v=parseFloat(s); var dd=1; while(Math.abs(v*dd-Math.round(v*dd))>1e-9 && dd<10000)dd*=10;
+      var nn=Math.round(v*dd); var g2=gcd(nn,dd)||1; return {n:nn/g2,d:dd/g2}; }
+    return null;
+  }
+
+  function secondPoint(q){ // nonzero integer point on the line within the grid
+    var x=q.den, y=q.num+q.c; if(y>R||y<-R){x=-q.den;y=-q.num+q.c;} return {x:x,y:y};
+  }
+
+  function show(cls,html){ fb.className='fb '+cls; fb.innerHTML=html; fb.hidden=false; }
+  function working(q){
+    var p=secondPoint(q);
+    return '<div class="work">Crosses the y-axis at (0, '+q.c+'), so <code>c = '+q.c+'</code>. It also passes through ('+p.x+', '+p.y+'). Gradient = rise ÷ run = ('+p.y+' − '+q.c+') ÷ ('+p.x+' − 0) = '+(p.y-q.c)+'/'+p.x+' = <code>'+fmtM(q)+'</code>.</div>';
+  }
+
+  function check(){
+    if(answered)return;
+    var m=parseFrac(mIn.value), c=parseFrac(cIn.value);
+    if(!m||!c){ show('bad','Enter both m and c as numbers (e.g. 2 and −3, or 1/2 and 4).'); return; }
+    answered=true; score.done++;
+    var okM=(m.n===cur.num && m.d===cur.den), okC=(c.d===1 && c.n===cur.c);
+    if(okM&&okC){ score.right++; score.streak++; show('good','Correct. <code>'+fmtEq(cur)+'</code>'); }
+    else { score.streak=0;
+      var what=(!okM&&!okC)?'Both m and c are wrong.':(!okM?'c is right; the gradient is wrong.':'m is right; the intercept is wrong.');
+      show('bad',what+' Answer: <code>'+fmtEq(cur)+'</code>'+working(cur)); }
+    save(); renderScore(); document.getElementById('next').focus();
+  }
+  function reveal(){ if(answered)return; answered=true; score.done++; score.streak=0;
+    show('bad','Answer: <code>'+fmtEq(cur)+'</code>'+working(cur)); save(); renderScore(); }
+  function next(){ cur=gen(); answered=false; draw(cur); mIn.value='';cIn.value=''; fb.hidden=true; mIn.focus(); }
+  function renderScore(){ scoreEl.innerHTML='<b>'+score.right+'</b> / '+score.done+' &nbsp;·&nbsp; streak <b>'+score.streak+'</b>'; }
+
+  document.getElementById('check').onclick=check;
+  document.getElementById('next').onclick=next;
+  document.getElementById('reveal').onclick=reveal;
+  document.getElementById('resetScore').onclick=function(){score={right:0,done:0,streak:0};save();renderScore();};
+  optFrac.onchange=optNeg.onchange=save;
+  [mIn,cIn].forEach(function(el){ el.addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); answered?next():check(); } }); });
+  document.addEventListener('keydown',function(e){ if(e.key==='Enter' && answered && document.activeElement.tagName!=='INPUT'){ next(); } });
+
+  load(); renderScore(); next();
+})();
+</script>
+</body>
+</html>
