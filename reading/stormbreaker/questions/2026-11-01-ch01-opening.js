@@ -142,7 +142,7 @@ window.registerBatch({
       answer: 1,
       why: "Alex asks Jack the same question earlier in the kitchen and spells it out: the house, himself and Jack. Crawley is the second person he asks.",
       more: [
-        { label: "What do the suit and tie tell us about Crawley?", text: "Polyester is a cheap man-made fabric, and Marks & Spencer is an ordinary high-street shop. Put together with ‘the sort of face you forget’, the author is saying Crawley is a dull, middle-ranking office man. Remember that description later in the book." },
+        { label: "Why describe Crawley’s suit and tie?", text: "Polyester is a cheap man-made fabric, and Marks & Spencer is an ordinary high-street shop. Writers often describe clothes to tell you about a person without saying it outright. Put together with ‘the sort of face you forget’, what kind of man is the author painting? Worth remembering later in the book." },
         { label: "What is ‘personnel’?", text: "The department of a company that deals with its staff: hiring, pay, problems. Most companies now call it HR (human resources)." }
       ]
     }

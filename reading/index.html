@@ -47,7 +47,8 @@
   .why.good { background: var(--good-bg); border-left: 4px solid var(--good); }
   .why.bad { background: var(--bad-bg); border-left: 4px solid var(--bad); }
   .why b { display: block; margin-bottom: 4px; }
-  .more { display: grid; gap: 8px; margin: -8px 0 18px; }
+  .more { display: grid; gap: 8px; margin: 0 0 18px; }
+  .more:empty { display: none; }
   .more button { text-align: left; padding: 10px 14px; border: 1px solid var(--accent);
     border-radius: 10px; background: var(--card); color: var(--accent); font-size: 16px; }
   .more button::before { content: "? "; font-weight: bold; }
@@ -74,9 +75,9 @@
   <section id="quiz" class="hidden">
     <div class="progress"><span id="counter"></span><span id="running"></span></div>
     <p class="q" id="qtext"></p>
+    <div class="more" id="more"></div>
     <div class="opts" id="opts"></div>
     <div class="why hidden" id="why"></div>
-    <div class="more" id="more"></div>
     <button class="primary hidden" id="next">Next</button>
   </section>
 
@@ -160,6 +161,16 @@
       });
       $("why").className = "why hidden";
       $("more").innerHTML = "";
+      (q.more || []).forEach(function (m) {
+        var b = document.createElement("button");
+        b.textContent = m.label;
+        var t = document.createElement("div");
+        t.className = "text hidden";
+        t.textContent = m.text;
+        b.onclick = function () { t.classList.toggle("hidden"); };
+        $("more").appendChild(b);
+        $("more").appendChild(t);
+      });
       $("next").classList.add("hidden");
     }
 
@@ -175,16 +186,6 @@
       var why = $("why");
       why.className = "why " + (ok ? "good" : "bad");
       why.innerHTML = "<b>" + (ok ? "Right." : "Not this one. The answer is " + KEYS[q.answer] + ".") + "</b>" + esc(q.why);
-      (q.more || []).forEach(function (m) {
-        var b = document.createElement("button");
-        b.textContent = m.label;
-        var t = document.createElement("div");
-        t.className = "text hidden";
-        t.textContent = m.text;
-        b.onclick = function () { t.classList.toggle("hidden"); };
-        $("more").appendChild(b);
-        $("more").appendChild(t);
-      });
       $("next").textContent = i + 1 < batch.questions.length ? "Next" : "See score";
       $("next").classList.remove("hidden");
       $("next").focus();
