@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reading questions</title>
+<style>
+  :root {
+    --ink: #1d1d1b;
+    --muted: #6b6b66;
+    --paper: #f7f5f0;
+    --card: #ffffff;
+    --line: #dedbd3;
+    --accent: #1f4e79;
+    --good: #2e7d4f;
+    --good-bg: #e3f3e8;
+    --bad: #b3261e;
+    --bad-bg: #fbe6e4;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--paper); color: var(--ink);
+    font: 18px/1.5 Georgia, "Times New Roman", serif; }
+  main { max-width: 640px; margin: 0 auto; padding: 20px 16px 60px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: var(--muted); font-size: 15px; margin: 0 0 20px; }
+  label { display: block; font-size: 14px; color: var(--muted); margin-bottom: 6px; }
+  select { width: 100%; font: inherit; padding: 10px 12px; border: 1px solid var(--line);
+    border-radius: 8px; background: var(--card); }
+  .range { margin: 14px 0 20px; padding: 12px 14px; background: var(--card);
+    border: 1px solid var(--line); border-radius: 8px; font-size: 16px; }
+  .range b { display: block; margin-bottom: 2px; }
+  button { font: inherit; cursor: pointer; }
+  .primary { display: block; width: 100%; padding: 14px; border: 0; border-radius: 10px;
+    background: var(--accent); color: #fff; font-size: 18px; }
+  .primary:disabled { opacity: .4; cursor: default; }
+  .progress { display: flex; justify-content: space-between; color: var(--muted);
+    font-size: 14px; margin-bottom: 10px; }
+  .q { font-size: 20px; margin: 0 0 18px; }
+  .opts { display: grid; gap: 10px; margin-bottom: 18px; }
+  .opt { text-align: left; padding: 12px 14px; border: 1px solid var(--line);
+    border-radius: 10px; background: var(--card); display: flex; gap: 12px; }
+  .opt .key { color: var(--muted); font-size: 15px; min-width: 1.2em; padding-top: 2px; }
+  .opt:disabled { cursor: default; color: var(--ink); opacity: 1; }
+  .opt.good { border-color: var(--good); background: var(--good-bg); }
+  .opt.bad { border-color: var(--bad); background: var(--bad-bg); }
+  .why { padding: 14px; border-radius: 10px; margin-bottom: 18px; font-size: 17px; }
+  .why.good { background: var(--good-bg); border-left: 4px solid var(--good); }
+  .why.bad { background: var(--bad-bg); border-left: 4px solid var(--bad); }
+  .why b { display: block; margin-bottom: 4px; }
+  .more { display: grid; gap: 8px; margin: -8px 0 18px; }
+  .more button { text-align: left; padding: 10px 14px; border: 1px solid var(--accent);
+    border-radius: 10px; background: var(--card); color: var(--accent); font-size: 16px; }
+  .more button::before { content: "? "; font-weight: bold; }
+  .more .text { padding: 10px 14px 4px; font-size: 16px; border-left: 4px solid var(--line); margin-bottom: 6px; }
+  .score { font-size: 40px; margin: 10px 0 4px; }
+  .missed { margin: 20px 0; padding: 0; list-style: none; }
+  .missed li { padding: 10px 0; border-top: 1px solid var(--line); font-size: 16px; }
+  .missed li:last-child { border-bottom: 1px solid var(--line); }
+  .missed .n { color: var(--muted); }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<main>
+  <section id="pick">
+    <h1>Reading questions</h1>
+    <p class="sub">Open book. Look it up in the book before you answer.</p>
+    <label for="batch">Choose a test</label>
+    <select id="batch"></select>
+    <div class="range" id="range"></div>
+    <button class="primary" id="start">Start</button>
+  </section>
+
+  <section id="quiz" class="hidden">
+    <div class="progress"><span id="counter"></span><span id="running"></span></div>
+    <p class="q" id="qtext"></p>
+    <div class="opts" id="opts"></div>
+    <div class="why hidden" id="why"></div>
+    <div class="more" id="more"></div>
+    <button class="primary hidden" id="next">Next</button>
+  </section>
+
+  <section id="done" class="hidden">
+    <h1 id="doneTitle"></h1>
+    <div class="score" id="score"></div>
+    <p class="sub" id="doneSub"></p>
+    <ul class="missed" id="missed"></ul>
+    <button class="primary" id="again">Back to tests</button>
+  </section>
+</main>
+
+<script>
+  // Each batch file calls registerBatch({...}). batches.js lists the files.
+  var BATCHES = [];
+  window.registerBatch = function (b) { BATCHES.push(b); };
+</script>
+<script src="batches.js"></script>
+<script>
+  (function () {
+    var $ = function (id) { return document.getElementById(id); };
+    var KEYS = ["a", "b", "c", "d", "e", "f"];
+    var batch, i, right, missed;
+
+    // Load every batch file listed in batches.js, then build the dropdown.
+    var files = window.BATCH_FILES || [];
+    var pending = files.length;
+    if (!pending) fill();
+    files.forEach(function (src) {
+      var s = document.createElement("script");
+      s.src = src;
+      s.onload = s.onerror = function () { if (--pending === 0) fill(); };
+      document.head.appendChild(s);
+    });
+
+    function fill() {
+      var sel = $("batch");
+      BATCHES.forEach(function (b, n) {
+        var o = document.createElement("option");
+        o.value = n;
+        o.textContent = b.book + " — " + b.title;
+        sel.appendChild(o);
+      });
+      showRange();
+      sel.onchange = showRange;
+      $("start").disabled = !BATCHES.length;
+    }
+
+    function showRange() {
+      var b = BATCHES[$("batch").value];
+      $("range").innerHTML = b
+        ? "<b>" + esc(b.title) + "</b>" + esc(b.range) + "<br><span style='color:var(--muted);font-size:14px'>" + b.questions.length + " questions</span>"
+        : "No tests found.";
+    }
+
+    function show(id) {
+      ["pick", "quiz", "done"].forEach(function (s) { $(s).classList.toggle("hidden", s !== id); });
+      window.scrollTo(0, 0);
+    }
+
+    $("start").onclick = function () {
+      batch = BATCHES[$("batch").value];
+      i = 0; right = 0; missed = [];
+      show("quiz");
+      ask();
+    };
+
+    function ask() {
+      var q = batch.questions[i];
+      $("counter").textContent = "Question " + (i + 1) + " of " + batch.questions.length;
+      $("running").textContent = right + " right";
+      $("qtext").textContent = q.q;
+      var opts = $("opts");
+      opts.innerHTML = "";
+      q.options.forEach(function (text, n) {
+        var b = document.createElement("button");
+        b.className = "opt";
+        b.innerHTML = "<span class='key'>" + KEYS[n] + ")</span><span>" + esc(text) + "</span>";
+        b.onclick = function () { answer(n, b); };
+        opts.appendChild(b);
+      });
+      $("why").className = "why hidden";
+      $("more").innerHTML = "";
+      $("next").classList.add("hidden");
+    }
+
+    function answer(n, btn) {
+      var q = batch.questions[i];
+      var ok = n === q.answer;
+      var buttons = $("opts").children;
+      for (var k = 0; k < buttons.length; k++) buttons[k].disabled = true;
+      buttons[q.answer].classList.add("good");
+      if (!ok) btn.classList.add("bad");
+      if (ok) right++; else missed.push(i);
+      $("running").textContent = right + " right";
+      var why = $("why");
+      why.className = "why " + (ok ? "good" : "bad");
+      why.innerHTML = "<b>" + (ok ? "Right." : "Not this one. The answer is " + KEYS[q.answer] + ".") + "</b>" + esc(q.why);
+      (q.more || []).forEach(function (m) {
+        var b = document.createElement("button");
+        b.textContent = m.label;
+        var t = document.createElement("div");
+        t.className = "text hidden";
+        t.textContent = m.text;
+        b.onclick = function () { t.classList.toggle("hidden"); };
+        $("more").appendChild(b);
+        $("more").appendChild(t);
+      });
+      $("next").textContent = i + 1 < batch.questions.length ? "Next" : "See score";
+      $("next").classList.remove("hidden");
+      $("next").focus();
+    }
+
+    $("next").onclick = function () {
+      i++;
+      if (i < batch.questions.length) ask(); else finish();
+    };
+
+    function finish() {
+      var total = batch.questions.length;
+      $("doneTitle").textContent = batch.book + " — " + batch.title;
+      $("score").textContent = right + " / " + total;
+      $("doneSub").textContent = missed.length ? "Questions to look at again:" : "All correct.";
+      var ul = $("missed");
+      ul.innerHTML = "";
+      missed.forEach(function (n) {
+        var q = batch.questions[n];
+        var li = document.createElement("li");
+        li.innerHTML = "<span class='n'>" + (n + 1) + ".</span> " + esc(q.q) + "<br><span class='n'>Answer: " + KEYS[q.answer] + ") " + esc(q.options[q.answer]) + "</span>";
+        ul.appendChild(li);
+      });
+      show("done");
+    }
+
+    $("again").onclick = function () { show("pick"); };
+
+    function esc(s) {
+      return String(s).replace(/[&<>"]/g, function (c) {
+        return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+      });
+    }
+  })();
+</script>
+</body>
+</html>
