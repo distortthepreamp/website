@@ -3,4 +3,5 @@ window.BATCH_FILES = [
   "stormbreaker/questions/2026-11-01-ch01-opening.js",
   "stormbreaker/questions/2026-11-01-ch02-heaven-for-cars.js",
   "stormbreaker/questions/2026-11-01-ch03-royal-and-general.js",
+  "buddhism-y9/questions/2026-11-03-buddhism-handout.js",
 ];
