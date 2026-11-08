@@ -33,6 +33,8 @@
   .primary { display: block; width: 100%; padding: 14px; border: 0; border-radius: 10px;
     background: var(--accent); color: #fff; font-size: 18px; }
   .primary:disabled { opacity: .4; cursor: default; }
+  .skip { display: block; width: 100%; padding: 12px; margin-bottom: 18px; border: 1px dashed var(--line);
+    border-radius: 10px; background: transparent; color: var(--muted); font-size: 16px; }
   .progress { display: flex; justify-content: space-between; color: var(--muted);
     font-size: 14px; margin-bottom: 10px; }
   .q { font-size: 20px; margin: 0 0 18px; }
@@ -77,6 +79,7 @@
     <p class="q" id="qtext"></p>
     <div class="more" id="more"></div>
     <div class="opts" id="opts"></div>
+    <button class="skip" id="skip">I don’t know yet — skip, come back to it</button>
     <div class="why hidden" id="why"></div>
     <button class="primary hidden" id="next">Next</button>
   </section>
@@ -100,7 +103,7 @@
   (function () {
     var $ = function (id) { return document.getElementById(id); };
     var KEYS = ["a", "b", "c", "d", "e", "f"];
-    var batch, i, right, missed;
+    var batch, queue, i, right, missed, answered;
 
     // Load every batch file listed in batches.js, then build the dropdown.
     var files = window.BATCH_FILES || [];
@@ -141,14 +144,17 @@
 
     $("start").onclick = function () {
       batch = BATCHES[$("batch").value];
-      i = 0; right = 0; missed = [];
+      queue = batch.questions.map(function (_, n) { return n; });
+      right = 0; missed = []; answered = 0;
       show("quiz");
       ask();
     };
 
     function ask() {
+      i = queue[0];
       var q = batch.questions[i];
-      $("counter").textContent = "Question " + (i + 1) + " of " + batch.questions.length;
+      var left = queue.length - 1;
+      $("counter").textContent = "Question " + (i + 1) + " of " + batch.questions.length + " · " + left + " to go";
       $("running").textContent = right + " right";
       $("qtext").textContent = q.q;
       var opts = $("opts");
@@ -161,6 +167,7 @@
         opts.appendChild(b);
       });
       $("why").className = "why hidden";
+      $("skip").classList.toggle("hidden", queue.length < 2);
       $("more").innerHTML = "";
       (q.more || []).forEach(function (m) {
         var b = document.createElement("button");
@@ -183,18 +190,27 @@
       buttons[q.answer].classList.add("good");
       if (!ok) btn.classList.add("bad");
       if (ok) right++; else missed.push(i);
+      answered++;
+      queue.shift();
+      $("skip").classList.add("hidden");
       $("running").textContent = right + " right";
       var why = $("why");
       why.className = "why " + (ok ? "good" : "bad");
       why.innerHTML = "<b>" + (ok ? "Right." : "Not this one. The answer is " + KEYS[q.answer] + ".") + "</b>" + esc(q.why);
-      $("next").textContent = i + 1 < batch.questions.length ? "Next" : "See score";
+      $("next").textContent = queue.length ? "Next" : "See score";
       $("next").classList.remove("hidden");
       $("next").focus();
     }
 
     $("next").onclick = function () {
-      i++;
-      if (i < batch.questions.length) ask(); else finish();
+      if (queue.length) ask(); else finish();
+    };
+
+    // Skip: move this question to the back of the queue. Not counted either way.
+    $("skip").onclick = function () {
+      if (queue.length < 2) return; // last one left: nowhere to go
+      queue.push(queue.shift());
+      ask();
     };
 
     function finish() {
@@ -204,6 +220,7 @@
       $("doneSub").textContent = missed.length ? "Questions to look at again:" : "All correct.";
       var ul = $("missed");
       ul.innerHTML = "";
+      missed.sort(function (a, b) { return a - b; });
       missed.forEach(function (n) {
         var q = batch.questions[n];
         var li = document.createElement("li");
