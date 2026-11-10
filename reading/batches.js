@@ -6,4 +6,5 @@ window.BATCH_FILES = [
   "stormbreaker/questions/2026-11-08-ch04-so-what-do-you-say.js",
   "buddhism-y9/questions/2026-11-03-buddhism-handout.js",
   "buddhism-y9/questions/2026-11-03-buddhism-handout-2.js",
+  "french-y9/questions/2026-11-10-module-1-words-and-grammar.js",
 ];

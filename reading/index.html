@@ -16,6 +16,8 @@
     --good-bg: #e3f3e8;
     --bad: #b3261e;
     --bad-bg: #fbe6e4;
+    --warn: #9a6b00;
+    --warn-bg: #fff3d6;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; background: var(--paper); color: var(--ink);
@@ -48,6 +50,17 @@
   .why { padding: 14px; border-radius: 10px; margin-bottom: 18px; font-size: 17px; }
   .why.good { background: var(--good-bg); border-left: 4px solid var(--good); }
   .why.bad { background: var(--bad-bg); border-left: 4px solid var(--bad); }
+  .why.warn { background: var(--warn-bg); border-left: 4px solid var(--warn); }
+  .typed { display: grid; gap: 10px; margin-bottom: 18px; }
+  .typed input { width: 100%; font: inherit; font-size: 20px; padding: 12px 14px; border: 1px solid var(--line);
+    border-radius: 10px; background: var(--card); color: var(--ink); }
+  .typed input:disabled { opacity: 1; }
+  .typed input.good { border-color: var(--good); background: var(--good-bg); }
+  .typed input.bad { border-color: var(--bad); background: var(--bad-bg); }
+  .typed input.warn { border-color: var(--warn); background: var(--warn-bg); }
+  .typed .check { padding: 12px; border: 0; border-radius: 10px; background: var(--accent); color: #fff; font-size: 17px; }
+  .typed .check:disabled { opacity: .4; }
+  .model { font-size: 15px; color: var(--muted); margin: 4px 0 0; }
   .why b { display: block; margin-bottom: 4px; }
   .more { display: grid; gap: 8px; margin: 0 0 18px; }
   .more:empty { display: none; }
@@ -159,7 +172,22 @@
       $("qtext").textContent = q.q;
       var opts = $("opts");
       opts.innerHTML = "";
-      q.options.forEach(function (text, n) {
+      if (q.type === "text") {
+        opts.className = "typed";
+        var inp = document.createElement("input");
+        inp.type = "text"; inp.autocomplete = "off"; inp.autocapitalize = "off"; inp.spellcheck = false;
+        inp.placeholder = q.placeholder || "Type your answer";
+        var chk = document.createElement("button");
+        chk.className = "check"; chk.textContent = "Check";
+        var go = function () { if (inp.value.trim()) answerText(inp.value, inp, chk); };
+        chk.onclick = go;
+        inp.onkeydown = function (e) { if (e.key === "Enter") go(); };
+        opts.appendChild(inp); opts.appendChild(chk);
+        setTimeout(function () { inp.focus(); }, 50);
+      } else {
+        opts.className = "opts";
+      }
+      (q.options || []).forEach(function (text, n) {
         var b = document.createElement("button");
         b.className = "opt";
         b.innerHTML = "<span class='key'>" + KEYS[n] + ")</span><span>" + esc(text) + "</span>";
@@ -180,6 +208,37 @@
         $("more").appendChild(t);
       });
       $("next").classList.add("hidden");
+    }
+
+    function norm(t) {
+      return String(t).toLowerCase().replace(/[\u2019\u2018`]/g, "'").replace(/[.,!?;:]/g, " ")
+        .replace(/\s+/g, " ").replace(/\s*'\s*/g, "'").trim();
+    }
+    function bare(t) { return norm(t).normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/-/g, " "); }
+
+    function answerText(value, inp, chk) {
+      var q = batch.questions[i];
+      var accept = q.accept || [q.answer];
+      var typed = norm(value), state = "bad";
+      for (var k = 0; k < accept.length; k++) {
+        if (norm(accept[k]) === typed) { state = "good"; break; }
+        if (bare(accept[k]) === bare(value)) state = "warn";
+      }
+      inp.disabled = true; chk.disabled = true; inp.className = state;
+      var ok = state !== "bad";
+      if (ok) right++; else missed.push(i);
+      answered++;
+      queue.shift();
+      $("skip").classList.add("hidden");
+      $("running").textContent = right + " right";
+      var why = $("why");
+      why.className = "why " + state;
+      var head = state === "good" ? "Right." : state === "warn" ? "Nearly. Check the accents or hyphens." : "Not this one.";
+      why.innerHTML = "<b>" + head + "</b>" + esc(q.why) + "<p class='model'>Answer: " + esc(q.answer) + "</p>";
+      $("next").textContent = queue.length ? "Next" : "See score";
+      $("next").classList.remove("hidden");
+      // Not focused: the Enter that submitted the answer would otherwise also press Next.
+      inp.blur();
     }
 
     function answer(n, btn) {
@@ -224,7 +283,8 @@
       missed.forEach(function (n) {
         var q = batch.questions[n];
         var li = document.createElement("li");
-        li.innerHTML = "<span class='n'>" + (n + 1) + ".</span> " + esc(q.q) + "<br><span class='n'>Answer: " + KEYS[q.answer] + ") " + esc(q.options[q.answer]) + "</span>";
+        var model = q.type === "text" ? esc(q.answer) : KEYS[q.answer] + ") " + esc(q.options[q.answer]);
+        li.innerHTML = "<span class='n'>" + (n + 1) + ".</span> " + esc(q.q) + "<br><span class='n'>Answer: " + model + "</span>";
         ul.appendChild(li);
       });
       show("done");
